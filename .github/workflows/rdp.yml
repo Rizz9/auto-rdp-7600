@@ -1,0 +1,24 @@
+
+name: Windows-RDP-NGROK
+on:
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    steps:
+    - name: Setup RDP + Ngrok
+      run: |
+        choco install ngrok -y
+        ngrok config add-authtoken 2z0CIIa2wlP8MNjX9CnJWB6JR6a_2fCCtNLVbbhgcaYtoMcc2
+        net user RDPuser RDPpass123! /add
+        net localgroup administrators RDPuser /add
+        powershell -Command "Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -Value 0"
+        powershell -Command "Enable-NetFirewallRule -DisplayGroup 'Remote Desktop'"
+        start /B ngrok tcp 3389
+        timeout /t 10
+        curl 127.0.0.1:4040/api/tunnels > tunnels.json
+        for /f "tokens=2 delims=:" %%a in ('findstr "public_url" tunnels.json') do echo NGROK_URL:%%a
+        echo USER: RDPuser
+        echo PASS: RDPpass123!
+        timeout /t 300
